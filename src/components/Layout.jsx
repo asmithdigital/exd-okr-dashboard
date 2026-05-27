@@ -1,65 +1,62 @@
-import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Target, ClipboardList, BarChart3, Plug } from 'lucide-react'
+import { NavLink } from 'react-router-dom'
+import { LayoutDashboard, BarChart3, FileText } from 'lucide-react'
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/okrs', label: 'OKR Detail', icon: Target },
-  { to: '/intake', label: 'Studio Intake', icon: ClipboardList },
-  { to: '/measurement', label: 'Measurement', icon: BarChart3 },
-  { to: '/connections', label: 'How It Connects', icon: Plug },
+const NAV_ITEMS = [
+  { label: 'Dashboard', to: '/', icon: LayoutDashboard, end: true },
+  { label: 'How We Measure', to: '/measurement', icon: BarChart3 },
+  { label: 'Decision Documentation', to: '/decisions', icon: FileText },
 ]
 
 export default function Layout({ children }) {
-  const location = useLocation()
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <header style={{ backgroundColor: '#0F1729' }} className="shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ backgroundColor: '#C4964A' }}>
-                <span className="text-white font-bold text-sm">EX</span>
-              </div>
-              <div>
-                <h1 className="text-white font-semibold text-lg leading-tight">EXD OKR Dashboard</h1>
-                <p className="text-slate-400 text-xs">Experience Design Studio · Q2 2025</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
-            {navItems.map(({ to, label, icon: Icon }) => {
-              const active = location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    active
-                      ? 'text-white'
-                      : 'text-slate-400 hover:text-white hover:bg-white/10'
-                  }`}
-                  style={active ? { backgroundColor: '#C4964A' } : {}}
-                >
-                  <Icon size={15} />
-                  <span className="hidden md:inline">{label}</span>
-                </Link>
-              )
-            })}
+    <div className="flex min-h-screen">
+      <aside
+        className="fixed inset-y-0 left-0 flex flex-col z-20"
+        style={{ width: 228, backgroundColor: '#0F1729' }}
+      >
+        <div className="px-5 py-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="text-white font-bold text-sm tracking-wide">EXD</div>
+          <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            OKR Dashboard
           </div>
         </div>
-      </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8">
-        {children}
+        <nav className="flex-1 px-3 py-4 space-y-0.5">
+          {NAV_ITEMS.map(({ label, to, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                  isActive ? 'font-medium' : 'hover:bg-white/5'
+                }`
+              }
+              style={({ isActive }) => ({
+                color: isActive ? '#C4964A' : 'rgba(255,255,255,0.5)',
+                backgroundColor: isActive ? 'rgba(196,150,74,0.12)' : undefined,
+              })}
+            >
+              <Icon size={15} strokeWidth={isActive => (isActive ? 2 : 1.5)} />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div
+          className="px-5 py-4"
+          style={{ borderTop: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.25)', fontSize: 11 }}
+        >
+          RAA Experience Design
+        </div>
+      </aside>
+
+      <main
+        className="flex-1"
+        style={{ marginLeft: 228, backgroundColor: '#f1f5f9', minHeight: '100vh' }}
+      >
+        <div className="max-w-5xl mx-auto px-8 py-10">{children}</div>
       </main>
-
-      <footer style={{ backgroundColor: '#0F1729' }} className="mt-auto">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between text-slate-500 text-xs">
-          <span>EXD OKR Dashboard · Internal use only</span>
-          <span>Mock data — not live</span>
-        </div>
-      </footer>
     </div>
   )
 }

@@ -1,142 +1,169 @@
-import { measurementTiers } from '../data/mockData'
-
-const metricStatusConfig = {
-  live: {
-    dot: 'bg-emerald-500',
-    badge: 'bg-emerald-100 text-emerald-700',
-    label: 'Live',
+const TIERS = [
+  {
+    number: 1,
+    name: 'Relationship',
+    metrics: 'NPS · Trust · Advocacy',
+    cadence: 'Biannual review',
+    color: '#8B5CF6',
+    bg: '#f5f3ff',
+    border: '#ddd6fe',
+    description:
+      "High-level sentiment metrics that tell us whether members feel good about RAA overall. They move slowly and are influenced by many factors beyond digital experience. We track them to understand the macro trend but don't use them to measure individual design decisions.",
   },
-  'in-progress': {
-    dot: 'bg-amber-400',
-    badge: 'bg-amber-100 text-amber-700',
-    label: 'In progress',
+  {
+    number: 2,
+    name: 'Journey',
+    metrics: 'CES · Conversion · Completion',
+    cadence: 'Quarterly review',
+    color: '#3B82F6',
+    bg: '#eff6ff',
+    border: '#bfdbfe',
+    description:
+      'Measures whether specific journeys work well end-to-end. Journey-specific CES and NPS, quote completion rates, payment success rates. This is where UX benchmarking lives — task success rates measured through regular benchmarking studies tell us whether our designs are actually improving the experience over time.',
   },
-  'not-started': {
-    dot: 'bg-slate-300',
-    badge: 'bg-slate-100 text-slate-500',
-    label: 'Not started',
+  {
+    number: 3,
+    name: 'Interaction',
+    metrics: 'Drop-off · Error rate · Task completion · Session data',
+    cadence: 'Monthly review',
+    color: '#10B981',
+    bg: '#f0fdf4',
+    border: '#bbf7d0',
+    description:
+      "Granular behavioural data from analytics that tells us what's happening at each step of a journey. Where are people dropping off? Where are errors occurring? This is the data that feeds into monthly insight synthesis and directly informs what we prioritise.",
   },
-}
+]
 
-const tierStatusConfig = {
-  Operational: { text: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  'Partially operational': { text: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-200' },
-  Establishing: { text: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
-}
-
-function MetricRow({ metric }) {
-  const cfg = metricStatusConfig[metric.status]
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-slate-50 last:border-0">
-      <div className="flex items-center gap-3">
-        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot}`} />
-        <div>
-          <p className="text-sm font-medium text-slate-800">{metric.name}</p>
-          {metric.trend && (
-            <p className="text-xs text-slate-400 mt-0.5">{metric.trend}</p>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        {metric.value && (
-          <span className="text-sm font-semibold text-slate-700 bg-slate-50 px-3 py-1 rounded-full">
-            {metric.value}
-          </span>
-        )}
-        <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${cfg.badge}`}>
-          {cfg.label}
-        </span>
-      </div>
-    </div>
-  )
-}
+const DATA_SOURCES = [
+  {
+    source: 'Jira',
+    powers:
+      'Work classification by pathway type (discovery/delivery/self-serve), discovery intake tracking, problem statement documentation',
+  },
+  {
+    source: 'UX Benchmarking (UserTesting/Askable)',
+    powers: 'Task success rates, usability metrics, quarterly benchmarking scores',
+  },
+  {
+    source: 'Qualtrics',
+    powers: 'NPS, CES, member satisfaction surveys',
+  },
+  {
+    source: 'Analytics platform',
+    powers: 'Conversion rates, drop-off rates, payment success, session data',
+  },
+  {
+    source: 'Figma API',
+    powers: 'Component coverage, design system adoption, inconsistency tracking',
+  },
+  {
+    source: 'Manual',
+    powers:
+      'Retro outcomes, playbook sign-off, meeting cadence, qualitative evidence',
+  },
+]
 
 export default function Measurement() {
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Measurement Framework</h2>
-        <p className="text-slate-500 mt-1">Three-tier model for Experience Design measurement</p>
+    <div className="max-w-3xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">How We Measure</h1>
+        <p className="text-sm text-slate-500 leading-relaxed">
+          The measurement approach for EXD OKRs — what we track, how we track it, and what
+          connects where.
+        </p>
       </div>
 
-      {/* legend */}
-      <div className="flex items-center gap-6 bg-white rounded-xl border border-slate-100 shadow-sm px-6 py-4">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Legend</p>
-        <div className="flex items-center gap-5">
-          {Object.entries(metricStatusConfig).map(([key, cfg]) => (
-            <div key={key} className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
-              <span className="text-sm text-slate-600">{cfg.label}</span>
+      {/* Section 1 */}
+      <section className="mb-10">
+        <h2 className="text-base font-semibold text-slate-900 mb-4">Measurement tiers</h2>
+        <div className="space-y-3">
+          {TIERS.map(tier => (
+            <div
+              key={tier.number}
+              className="rounded-xl border p-6"
+              style={{ backgroundColor: tier.bg, borderColor: tier.border }}
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+                    style={{ backgroundColor: tier.color }}
+                  >
+                    {tier.number}
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">{tier.name}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">{tier.metrics}</p>
+                  </div>
+                </div>
+                <span
+                  className="text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap shrink-0"
+                  style={{ backgroundColor: 'white', color: tier.color, border: `1px solid ${tier.border}` }}
+                >
+                  {tier.cadence}
+                </span>
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed">{tier.description}</p>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* tier cards */}
-      <div className="space-y-5">
-        {measurementTiers.map(tier => {
-          const scfg = tierStatusConfig[tier.status]
-          const liveCount = tier.metrics.filter(m => m.status === 'live').length
-          const inProgressCount = tier.metrics.filter(m => m.status === 'in-progress').length
-          const totalCount = tier.metrics.length
+      {/* Section 2 */}
+      <section className="mb-10">
+        <h2 className="text-base font-semibold text-slate-900 mb-4">
+          How OKR progress is tracked
+        </h2>
+        <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-3">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            FY26–27 OKRs are primarily tracked through manual evidence logging because the systems
+            are being established. Status is updated by the EXD team as milestones are reached.
+          </p>
+          <p className="text-sm text-slate-600 leading-relaxed">
+            In FY27–28, more KRs will be trackable through automated data sources — Jira tags for
+            work classification, analytics for conversion metrics, Figma API for design system
+            coverage.
+          </p>
+        </div>
+      </section>
 
-          return (
-            <div key={tier.tier} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-              {/* header bar */}
-              <div className="px-6 py-5 flex items-start justify-between" style={{ backgroundColor: '#0F1729' }}>
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Tier {tier.tier}</span>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${scfg.text} ${scfg.bg} ${scfg.border}`}>
-                      {tier.status}
-                    </span>
-                  </div>
-                  <h3 className="text-white font-bold text-xl">{tier.name}</h3>
-                  <p className="text-slate-400 text-sm mt-1">{tier.description}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-white font-bold text-2xl">{liveCount}/{totalCount}</p>
-                  <p className="text-slate-400 text-xs mt-0.5">metrics live</p>
-                  <p className="text-slate-400 text-xs mt-2">Review: {tier.reviewCadence}</p>
-                </div>
-              </div>
-
-              {/* progress bar */}
-              <div className="h-1.5 flex">
-                <div
-                  className="bg-emerald-500 transition-all"
-                  style={{ width: `${(liveCount / totalCount) * 100}%` }}
-                />
-                <div
-                  className="bg-amber-400 transition-all"
-                  style={{ width: `${(inProgressCount / totalCount) * 100}%` }}
-                />
-              </div>
-
-              {/* metrics */}
-              <div className="px-6 py-2">
-                {tier.metrics.map(metric => <MetricRow key={metric.name} metric={metric} />)}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* explainer */}
-      <div className="bg-slate-800 rounded-xl p-6 text-slate-300 space-y-3">
-        <h3 className="text-white font-semibold text-base">How this model works</h3>
-        <p className="text-sm leading-relaxed">
-          The three-tier model separates signal by time horizon and audience. Tier 1 (Relationship) tells us how
-          customers feel about us overall — useful for executive reporting and biannual strategy reviews.
-          Tier 2 (Journey) measures key flow performance — useful for squad-level quarterly OKR tracking.
-          Tier 3 (Interaction) gives granular, real-time signal on specific UI moments — useful for the design
-          team's monthly synthesis and rapid iteration decisions.
-        </p>
-        <p className="text-sm leading-relaxed">
-          The goal is for all tiers to be operational by end of Q3. Tier 3 is the current focus area — data
-          pipeline access is the primary blocker.
-        </p>
-      </div>
+      {/* Section 3 */}
+      <section>
+        <h2 className="text-base font-semibold text-slate-900 mb-4">
+          What connects where (future state)
+        </h2>
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Data source
+                </th>
+                <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Powers
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {DATA_SOURCES.map(({ source, powers }) => (
+                <tr key={source} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-5 py-3.5 font-medium text-slate-700 whitespace-nowrap align-top">
+                    {source}
+                  </td>
+                  <td className="px-5 py-3.5 text-slate-500 leading-relaxed">{powers}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+          <p className="text-xs text-amber-700 leading-relaxed">
+            This dashboard currently uses manual data entry. The decision log and measurement
+            framework describe what would need to be in place to automate each data source.
+          </p>
+        </div>
+      </section>
     </div>
   )
 }

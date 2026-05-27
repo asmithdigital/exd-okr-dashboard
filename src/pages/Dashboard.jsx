@@ -1,206 +1,176 @@
-import { Link } from 'react-router-dom'
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer
-} from 'recharts'
-import { ArrowRight, TrendingUp, AlertTriangle, XCircle, CheckCircle } from 'lucide-react'
-import { okrs, throughputData, measurementTiers } from '../data/mockData'
-import StatusBadge from '../components/StatusBadge'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useOKR } from '../contexts/OKRContext'
+import { OKR_DATA, ALL_OKRS } from '../data/okrData'
+import { STATUS_COLORS, getOKRStatus } from '../utils/status'
 
-const statusSummary = {
-  green: okrs.flatMap(o => o.keyResults).filter(k => k.status === 'green').length,
-  amber: okrs.flatMap(o => o.keyResults).filter(k => k.status === 'amber').length,
-  red: okrs.flatMap(o => o.keyResults).filter(k => k.status === 'red').length,
-}
-const totalKRs = statusSummary.green + statusSummary.amber + statusSummary.red
-
-const CHART_COLORS = {
-  discovery: '#6366f1',
-  delivery: '#C4964A',
-  selfServe: '#10b981',
-  research: '#64748b',
-}
-
-function OKRSummaryCard({ okr }) {
-  const krCounts = { green: 0, amber: 0, red: 0 }
-  okr.keyResults.forEach(kr => { krCounts[kr.status] = (krCounts[kr.status] || 0) + 1 })
-
-  const statusBorderMap = { green: '#10b981', amber: '#F59E0B', red: '#ef4444' }
-  const borderColor = statusBorderMap[okr.overallStatus] || '#F59E0B'
-
+function StatusDot({ status, size = 10 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6 flex flex-col gap-4" style={{ borderLeftWidth: 4, borderLeftColor: borderColor }}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mb-1">{okr.quarter}</p>
-          <h3 className="text-slate-800 font-semibold text-base leading-snug">{okr.title}</h3>
-        </div>
-        <StatusBadge status={okr.overallStatus} size="sm" />
-      </div>
-
-      <div className="grid grid-cols-3 gap-2">
-        {okr.keyResults.map((kr, i) => (
-          <div key={kr.id} className="bg-slate-50 rounded-lg p-3">
-            <p className="text-xs text-slate-500 mb-1">KR{i + 1}</p>
-            <StatusBadge status={kr.status} size="sm" />
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
-        <div className="flex items-center gap-3 text-xs text-slate-500">
-          {krCounts.green > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-emerald-500 rounded-full" />{krCounts.green} on track</span>}
-          {krCounts.amber > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-400 rounded-full" />{krCounts.amber} at risk</span>}
-          {krCounts.red > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full" />{krCounts.red} off track</span>}
-        </div>
-        <Link
-          to={`/okrs/${okr.id}`}
-          className="flex items-center gap-1 text-xs font-medium hover:underline"
-          style={{ color: '#C4964A' }}
-        >
-          View detail <ArrowRight size={12} />
-        </Link>
-      </div>
-    </div>
+    <span
+      style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: STATUS_COLORS[status] || '#6B7280',
+        flexShrink: 0,
+      }}
+    />
   )
 }
 
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-xs">
-      <p className="font-semibold text-slate-700 mb-2">{label}</p>
-      {payload.map(p => (
-        <div key={p.name} className="flex items-center justify-between gap-4">
-          <span className="text-slate-500 capitalize">{p.name}</span>
-          <span className="font-medium" style={{ color: p.color }}>{p.value}</span>
-        </div>
-      ))}
-    </div>
-  )
+function krOneLiner(kr, data) {
+  if (kr.type === 'quantitative') {
+    const current = data.krProgress[kr.id]?.current ?? kr.current
+    const isPercent = kr.unit.startsWith('%')
+    if (isPercent) return `${current}% of ${kr.target}% target`
+    return `${current} / ${kr.target} ${kr.unit}`
+  }
+  const milestones = data.krMilestones[kr.id] || kr.initialMilestones || []
+  const checked = milestones.filter(Boolean).length
+  return `${checked} of ${kr.milestones.length} milestones`
 }
 
 export default function Dashboard() {
-  const meterTotalKRs = totalKRs
+  const [selectedFY, setSelectedFY] = useState('fy2627')
+  const { data } = useOKR()
+  const navigate = useNavigate()
+
+  const okrs = OKR_DATA[selectedFY] || []
+
+  const recentActivity = Object.entries(data.evidence)
+    .flatMap(([krId, entries]) =>
+      (entries || []).map(e => ({ ...e, krId }))
+    )
+    .filter(e => e.date && e.note)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5)
+    .map(entry => {
+      for (const okr of ALL_OKRS) {
+        for (const kr of okr.krs) {
+          if (kr.id === entry.krId) {
+            return { ...entry, okrTitle: okr.title, okrNumber: okr.number, krNumber: kr.number, okrId: okr.id, fy: okr.fy }
+          }
+        }
+      }
+      return entry
+    })
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Studio Health Overview</h2>
-        <p className="text-slate-500 mt-1">Q2 2025 · Data as at 25 May 2025 · <span className="text-amber-600 font-medium">Mock data — not live</span></p>
-      </div>
-
-      {/* KR health summary strip */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center">
-            <CheckCircle className="text-emerald-600" size={24} />
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-slate-800">{statusSummary.green}</p>
-            <p className="text-sm text-slate-500">On Track</p>
-          </div>
+    <div>
+      <div className="flex items-start justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">OKR Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">EXD — Experience Design · RAA</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
-            <AlertTriangle className="text-amber-500" size={24} />
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-slate-800">{statusSummary.amber}</p>
-            <p className="text-sm text-slate-500">At Risk</p>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
-            <XCircle className="text-red-500" size={24} />
-          </div>
-          <div>
-            <p className="text-3xl font-bold text-slate-800">{statusSummary.red}</p>
-            <p className="text-sm text-slate-500">Off Track</p>
-          </div>
+        <div className="flex bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+          {[['fy2627', 'FY26–27'], ['fy2728', 'FY27–28']].map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setSelectedFY(key)}
+              className="px-4 py-2 rounded-md text-sm font-medium transition-all"
+              style={{
+                backgroundColor: selectedFY === key ? '#0F1729' : 'transparent',
+                color: selectedFY === key ? 'white' : '#94a3b8',
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* OKR summary cards */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-slate-800">OKR Status</h3>
-          <Link to="/okrs" className="text-sm font-medium hover:underline" style={{ color: '#C4964A' }}>
-            View all OKRs →
-          </Link>
+      {selectedFY === 'fy2728' && (
+        <div
+          className="mb-6 px-4 py-3 rounded-lg text-sm border"
+          style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a', color: '#92400e' }}
+        >
+          FY27–28 OKRs are the planned outcomes once FY26–27 foundations are in place. Status tracking begins in FY27.
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {okrs.map(okr => <OKRSummaryCard key={okr.id} okr={okr} />)}
-        </div>
-      </div>
+      )}
 
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Throughput chart */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h3 className="text-base font-semibold text-slate-800 flex items-center gap-2">
-                <TrendingUp size={18} style={{ color: '#C4964A' }} />
-                Studio Throughput
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+        {okrs.map(okr => {
+          const okrStatus = getOKRStatus(okr, data.krStatus)
+          return (
+            <button
+              key={okr.id}
+              onClick={() => navigate(`/okr/${okr.id}`)}
+              className="text-left bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all"
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  OKR {okr.number}
+                </span>
+                <StatusDot status={okrStatus} size={10} />
+              </div>
+              <h3 className="font-semibold text-slate-900 text-sm leading-snug mb-4">
+                {okr.title}
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Work items by type · last 12 weeks</p>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={throughputData} barSize={6} barGap={2}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="week" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="discovery" name="Discovery" fill={CHART_COLORS.discovery} radius={[2, 2, 0, 0]} />
-              <Bar dataKey="delivery" name="Delivery" fill={CHART_COLORS.delivery} radius={[2, 2, 0, 0]} />
-              <Bar dataKey="selfServe" name="Self-serve" fill={CHART_COLORS.selfServe} radius={[2, 2, 0, 0]} />
-              <Bar dataKey="research" name="Research" fill={CHART_COLORS.research} radius={[2, 2, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Measurement status panel */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-          <h3 className="text-base font-semibold text-slate-800 mb-4">Measurement Status</h3>
-          <div className="space-y-4">
-            {measurementTiers.map(tier => {
-              const live = tier.metrics.filter(m => m.status === 'live').length
-              const total = tier.metrics.length
-              const statusColorMap = { 'Operational': 'text-emerald-600', 'Partially operational': 'text-amber-600', 'Establishing': 'text-red-500' }
-              return (
-                <div key={tier.tier} className="border border-slate-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tier {tier.tier}</p>
-                      <p className="text-sm font-semibold text-slate-800">{tier.name}</p>
+              <div className="space-y-1.5">
+                {okr.krs.map(kr => {
+                  const krStatus = data.krStatus[kr.id] || kr.initialStatus
+                  return (
+                    <div key={kr.id} className="flex items-start gap-2">
+                      <StatusDot status={krStatus} size={7} />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium text-slate-400 mr-1.5">
+                          {kr.number}
+                        </span>
+                        <span className="text-xs text-slate-500">{krOneLiner(kr, data)}</span>
+                      </div>
                     </div>
-                    <span className={`text-xs font-medium ${statusColorMap[tier.status]}`}>{tier.status}</span>
-                  </div>
-                  <div className="flex gap-1 mt-2">
-                    {tier.metrics.map(m => (
-                      <div
-                        key={m.name}
-                        title={m.name}
-                        className={`h-2 flex-1 rounded-full ${
-                          m.status === 'live' ? 'bg-emerald-500' :
-                          m.status === 'in-progress' ? 'bg-amber-400' :
-                          'bg-slate-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-2">{live}/{total} metrics live · {tier.reviewCadence}</p>
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <span className="text-xs text-slate-400 flex items-center gap-1">
+                  View detail →
+                </span>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      <div>
+        <h2 className="text-base font-semibold text-slate-900 mb-4">Recent activity</h2>
+        {recentActivity.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-xl p-10 text-center">
+            <p className="text-slate-400 text-sm">
+              No progress has been logged yet. Open any OKR to start tracking.
+            </p>
           </div>
-          <Link to="/measurement" className="mt-4 block text-xs font-medium hover:underline" style={{ color: '#C4964A' }}>
-            View full framework →
-          </Link>
-        </div>
+        ) : (
+          <div className="space-y-2">
+            {recentActivity.map((entry, i) => (
+              <div
+                key={i}
+                className="bg-white border border-slate-200 rounded-lg px-5 py-4 flex gap-4 items-start"
+              >
+                <div className="text-xs text-slate-400 whitespace-nowrap pt-0.5 w-24 shrink-0">
+                  {entry.date}
+                </div>
+                <div className="flex-1 min-w-0">
+                  {entry.fy && (
+                    <div className="text-xs text-slate-400 mb-1">
+                      {entry.fy} · OKR {entry.okrNumber} · KR {entry.krNumber}
+                    </div>
+                  )}
+                  <p className="text-sm text-slate-700">{entry.note}</p>
+                </div>
+                {entry.okrId && (
+                  <button
+                    onClick={() => navigate(`/okr/${entry.okrId}`)}
+                    className="text-xs text-slate-400 hover:text-slate-600 whitespace-nowrap shrink-0"
+                  >
+                    View →
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
